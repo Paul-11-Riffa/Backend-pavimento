@@ -1,0 +1,27 @@
+{
+  "name": "pavimento-backend",
+  "version": "1.0.0",
+  "description": "API REST para el proyecto SIG Pavimento — recibe y sirve geometrías GeoJSON de calles reportadas por ciudadanos.",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": [
+    "gis",
+    "geojson",
+    "pavimento",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@turf/turf": "^7.3.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "knex": "^3.2.10",
+    "pg": "^8.21.0",
+    "uuid": "^11.1.0"
+  }
+}
