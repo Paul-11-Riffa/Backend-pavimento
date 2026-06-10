@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Simulador GPS - Geofencing en Vivo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: white;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .info-box {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .info-box.alert {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .info-box.success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .info-box strong {
+            display: block;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-indicator.online {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.offline {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .coordinates {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+        }
+
+        .coordinate-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+
+        .coordinate-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .coordinate-value {
+            color: #666;
+        }
+
+        .stats-box {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stat-line:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .instruction {
+            background: #eff6ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #0369a1;
+            line-height: 1.6;
+        }
+
+        .instruction strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #0369a1;
+        }
+
+        .marker-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .marker-btn {
+            padding: 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .marker-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .marker-btn:not(.active) {
+            background: #e5e7eb;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Control -->
+        <div class="sidebar">
+            <h2>🎮 Simulador GPS</h2>
+
+            <div class="instruction">
+                <strong>Instrucciones:</strong>
+                1. Selecciona una zona<br>
+                2. Crea o selecciona un reo<br>
+                3. Haz click en el mapa para mover el punto<br>
+                4. Arrastra para simular movimiento<br>
+                5. ¡Mira las alertas en tiempo real!
+            </div>
+
+            <!-- Selector de Zona -->
+            <div class="form-group">
+                <label>📍 Selecciona Zona:</label>
+                <select id="zoneSelect" onchange="selectZone()">
+                    <option value="">-- Cargar zonas --</option>
+                </select>
+            </div>
+
+            <!-- Zona Info -->
+            <div id="zoneInfo" class="info-box hidden">
+                <strong id="zoneName"></strong>
+                <small id="zoneDescription"></small>
+            </div>
+
+            <!-- Selector de Reo -->
+            <div class="form-group">
+                <label>👤 Selecciona Reo:</label>
+                <select id="inmateSelect" onchange="selectInmate()">
+                    <option value="">-- Cargar reos --</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="createNewInmate()">➕ Crear Reo</button>
+                <button class="btn-danger" onclick="deleteInmate()">❌ Eliminar</button>
+            </div>
+
+            <!-- Inmate Info -->
+            <div id="inmateInfo" class="info-box hidden">
+                <strong id="inmateName"></strong>
+                <small id="inmateId"></small>
+                <div style="margin-top: 5px;">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="inmateStatus"></span>
+                </div>
+            </div>
+
+            <!-- Coordenadas Actuales -->
+            <div class="coordinates" id="coordinates" style="display: none;">
+                <div class="coordinate-line">
+                    <span class="coordinate-label">Latitud:</span>
+                    <span class="coordinate-value" id="currentLat">-</span>
+                </div>
+                <div class="coordinate-line">
+                    <span class="coordinate-label">Longitud:</span>
+                    <span class="coordinate-value" id="currentLng">-</span>
+                </div>
+                <div class="coordinate-line">
+                    <span class="coordinate-label">¿Dentro?:</span>
+                    <span class="coordinate-value" id="insideStatus">-</span>
+                </div>
+                <div class="coordinate-line">
+                    <span class="coordinate-label">Distancia:</span>
+                    <span class="coordinate-value" id="distance">-</span>
+                </div>
+            </div>
+
+            <!-- Controles del Marker -->
+            <div class="marker-controls">
+                <button class="marker-btn active" id="clickMode" onclick="setMode('click')">Click en Mapa</button>
+                <button class="marker-btn" id="dragMode" onclick="setMode('drag')">Arrastar</button>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="button-group">
+                <button class="btn-success" onclick="sendPosition()">📤 Enviar Posición</button>
+                <button class="btn-primary" onclick="simulateWalk()">🚶 Simular Caminata</button>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-box" id="stats" style="display: none;">
+                <div class="stat-line">
+                    <span class="stat-label">Posiciones enviadas:</span>
+                    <span class="stat-value" id="positionCount">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Alertas activas:</span>
+                    <span class="stat-value" id="alertCount">0</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Última actualización:</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 20px;">📡 Estado</h2>
+            <div class="info-box">
+                <span class="status-indicator" id="apiStatus"></span>
+                <span id="apiStatusText">Desconectado</span>
+            </div>
+            <div class="info-box">
+                <span class="status-indicator" id="wsStatus"></span>
+                <span id="wsStatusText">WS Desconectado</span>
+            </div>
+        </div>
+
+        <!-- Mapa -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // CONFIGURACIÓN GLOBAL
+        // ═══════════════════════════════════════════════════════════════════
+
+        const API_BASE = 'http://localhost:3000/api';
+        let map, currentMarker, currentZone, currentInmate, currentMode = 'click';
+        let positionCount = 0, stats = { alerts: 0 };
+        let ws = null;
+
+        // Conectar WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:3000/ws');
+
+            ws.addEventListener('open', () => {
+                console.log('✅ WebSocket conectado');
+                document.getElementById('wsStatus').className = 'status-indicator online';
+                document.getElementById('wsStatusText').textContent = 'WS Conectado';
+            });
+
+            ws.addEventListener('message', (event) => {
+                const message = JSON.parse(event.data);
+                console.log('📨 Mensaje WebSocket:', message);
+
+                if (message.type === 'position:update') {
+                    console.log('📍 Posición actualizada:', message.data);
+                    positionCount++;
+                    document.getElementById('positionCount').textContent = positionCount;
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                } else if (message.type === 'alert:new') {
+                    console.log('🚨 ¡ALERTA NUEVA!:', message.data);
+                    stats.alerts++;
+                    document.getElementById('alertCount').textContent = stats.alerts;
+                    alert(`🚨 ALERTA: ${message.data.inmateName} SALIÓ DE LA ZONA ${message.data.zoneName}`);
+                } else if (message.type === 'alert:resolved') {
+                    console.log('✅ Alerta resuelta:', message.data);
+                    alert(`✅ ALERTA RESUELTA: ${message.data.inmateName} volvió a su zona`);
+                }
+            });
+
+            ws.addEventListener('close', () => {
+                console.log('❌ WebSocket desconectado');
+                document.getElementById('wsStatus').className = 'status-indicator offline';
+                document.getElementById('wsStatusText').textContent = 'WS Desconectado';
+                // Reintentar conexión cada 3 segundos
+                setTimeout(connectWebSocket, 3000);
+            });
+
+            ws.addEventListener('error', (error) => {
+                console.error('❌ Error WebSocket:', error);
+                document.getElementById('wsStatus').className = 'status-indicator offline';
+                document.getElementById('wsStatusText').textContent = 'Error WS';
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // INICIALIZAR MAPA
+        // ═══════════════════════════════════════════════════════════════════
+
+        function initMap() {
+            map = L.map('map').setView([-34.905, -56.145], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            map.on('click', handleMapClick);
+            updateAPIStatus();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CARGAR ZONAS
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function loadZones() {
+            try {
+                const res = await fetch(`${API_BASE}/zones`);
+                const data = await res.json();
+                const select = document.getElementById('zoneSelect');
+
+                select.innerHTML = '<option value="">-- Seleccionar Zona --</option>';
+
+                data.features?.forEach(zone => {
+                    const opt = document.createElement('option');
+                    opt.value = zone.id;
+                    opt.textContent = `${zone.properties.name} (${zone.properties.inmateCount} reos)`;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error loading zones:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // SELECCIONAR ZONA
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function selectZone() {
+            const zoneId = document.getElementById('zoneSelect').value;
+            if (!zoneId) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/zones/${zoneId}`);
+                currentZone = await res.json();
+
+                // Mostrar info
+                document.getElementById('zoneInfo').classList.remove('hidden');
+                document.getElementById('zoneName').textContent = currentZone.properties.name;
+                document.getElementById('zoneDescription').textContent = currentZone.properties.description || 'Sin descripción';
+
+                // Dibujar polígono en mapa
+                drawZonePolygon(currentZone);
+
+                // Cargar reos de esta zona
+                loadInmatesForZone(zoneId);
+
+            } catch (error) {
+                console.error('Error selecting zone:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // DIBUJAR POLÍGONO DE ZONA
+        // ═══════════════════════════════════════════════════════════════════
+
+        function drawZonePolygon(zone) {
+            // Limpiar polígonos anteriores
+            map.eachLayer(layer => {
+                if (layer instanceof L.Polygon && layer !== currentMarker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            const coords = zone.geometry.coordinates[0].map(([lng, lat]) => [lat, lng]);
+            const polygon = L.polygon(coords, {
+                color: '#667eea',
+                fillColor: '#667eea',
+                fillOpacity: 0.2,
+                weight: 2,
+                dashArray: '5, 5'
+            }).addTo(map);
+
+            map.fitBounds(polygon.getBounds());
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CARGAR REOS DE ZONA
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function loadInmatesForZone(zoneId) {
+            try {
+                const res = await fetch(`${API_BASE}/inmates?zoneId=${zoneId}`);
+                const inmates = await res.json();
+                const select = document.getElementById('inmateSelect');
+
+                select.innerHTML = '<option value="">-- Crear Nuevo Reo --</option>';
+
+                inmates.forEach(inmate => {
+                    const opt = document.createElement('option');
+                    opt.value = inmate.id;
+                    opt.textContent = `${inmate.name} (${inmate.status})`;
+                    select.appendChild(opt);
+                });
+            } catch (error) {
+                console.error('Error loading inmates:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // SELECCIONAR REO
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function selectInmate() {
+            const inmateId = document.getElementById('inmateSelect').value;
+            if (!inmateId) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/inmates/${inmateId}`);
+                currentInmate = await res.json();
+
+                document.getElementById('inmateInfo').classList.remove('hidden');
+                document.getElementById('inmateName').textContent = currentInmate.name;
+                document.getElementById('inmateId').textContent = `ID: ${currentInmate.identification}`;
+
+                const statusIndicator = document.getElementById('statusIndicator');
+                statusIndicator.className = currentInmate.status === 'fugado' ? 'status-indicator' : 'status-indicator online';
+                statusIndicator.style.background = currentInmate.status === 'fugado' ? '#ef4444' : '#10b981';
+
+                document.getElementById('inmateStatus').textContent = currentInmate.status.toUpperCase();
+                document.getElementById('coordinates').style.display = 'block';
+                document.getElementById('stats').style.display = 'block';
+
+                // Cargar última posición
+                loadLastPosition(inmateId);
+            } catch (error) {
+                console.error('Error selecting inmate:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CARGAR ÚLTIMA POSICIÓN
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function loadLastPosition(inmateId) {
+            try {
+                const res = await fetch(`${API_BASE}/gps/history/${inmateId}?limit=1`);
+                const history = await res.json();
+
+                if (history.length > 0) {
+                    const pos = history[0];
+                    addMarker(pos.lat, pos.lng);
+                    updateCoordinates(pos.lat, pos.lng);
+                }
+            } catch (error) {
+                console.error('Error loading position:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // AGREGAR MARKER
+        // ═══════════════════════════════════════════════════════════════════
+
+        function addMarker(lat, lng) {
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+
+            currentMarker = L.marker([lat, lng], {
+                draggable: currentMode === 'drag',
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map);
+
+            if (currentMode === 'drag') {
+                currentMarker.on('dragend', () => {
+                    const pos = currentMarker.getLatLng();
+                    updateCoordinates(pos.lat, pos.lng);
+                });
+            }
+
+            updateCoordinates(lat, lng);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // MANEJO DE CLICKS EN MAPA
+        // ═══════════════════════════════════════════════════════════════════
+
+        function handleMapClick(e) {
+            if (!currentInmate) {
+                alert('Por favor selecciona un reo primero');
+                return;
+            }
+
+            if (currentMode === 'click') {
+                addMarker(e.latlng.lat, e.latlng.lng);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CAMBIAR MODO
+        // ═══════════════════════════════════════════════════════════════════
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('clickMode').classList.toggle('active', mode === 'click');
+            document.getElementById('dragMode').classList.toggle('active', mode === 'drag');
+
+            if (currentMarker) {
+                currentMarker.dragging[mode === 'drag' ? 'enable' : 'disable']();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ACTUALIZAR COORDENADAS
+        // ═══════════════════════════════════════════════════════════════════
+
+        function updateCoordinates(lat, lng) {
+            document.getElementById('currentLat').textContent = lat.toFixed(6);
+            document.getElementById('currentLng').textContent = lng.toFixed(6);
+
+            // Verificar si está dentro de la zona
+            if (currentZone) {
+                const geometry = currentZone.geometry;
+                const inside = pointInPolygon([lng, lat], geometry.coordinates[0]);
+                document.getElementById('insideStatus').textContent = inside ? '✅ SÍ' : '❌ NO';
+                document.getElementById('insideStatus').style.color = inside ? '#10b981' : '#ef4444';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ENVIAR POSICIÓN AL BACKEND
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function sendPosition() {
+            if (!currentInmate || !currentMarker) {
+                alert('Selecciona un reo y coloca un punto en el mapa');
+                return;
+            }
+
+            const pos = currentMarker.getLatLng();
+
+            try {
+                const res = await fetch(`${API_BASE}/gps/position`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        inmateId: currentInmate.id,
+                        lat: pos.lat,
+                        lng: pos.lng,
+                        accuracy: 5
+                    })
+                });
+
+                const result = await res.json();
+                positionCount++;
+                document.getElementById('positionCount').textContent = positionCount;
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+                if (result.alert) {
+                    console.log('🚨 ALERTA GENERADA:', result.alert);
+                    stats.alerts++;
+                    document.getElementById('alertCount').textContent = stats.alerts;
+                }
+
+                alert(`✅ Posición enviada\n${result.inside ? '✅ Dentro de zona' : '🚨 FUERA DE ZONA'}`);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar posición');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // CREAR NUEVO REO
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function createNewInmate() {
+            if (!currentZone) {
+                alert('Selecciona una zona primero');
+                return;
+            }
+
+            const name = prompt('Nombre del reo:');
+            const id = prompt('Identificación (CI):');
+
+            if (!name || !id) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/inmates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        identification: id,
+                        zoneId: currentZone.id,
+                        deviceId: `device-${Date.now()}`
+                    })
+                });
+
+                const inmate = await res.json();
+                currentInmate = inmate;
+
+                document.getElementById('inmateInfo').classList.remove('hidden');
+                document.getElementById('inmateName').textContent = inmate.name;
+                document.getElementById('inmateId').textContent = `ID: ${inmate.identification}`;
+                document.getElementById('coordinates').style.display = 'block';
+                document.getElementById('stats').style.display = 'block';
+
+                loadInmatesForZone(currentZone.id);
+                alert(`✅ Reo creado: ${inmate.name}`);
+
+            } catch (error) {
+                alert('Error al crear reo');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ELIMINAR REO
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function deleteInmate() {
+            if (!currentInmate) {
+                alert('Selecciona un reo para eliminar');
+                return;
+            }
+
+            if (!confirm(`¿Eliminar a ${currentInmate.name}?`)) return;
+
+            try {
+                await fetch(`${API_BASE}/inmates/${currentInmate.id}`, { method: 'DELETE' });
+                alert('✅ Reo eliminado');
+                currentInmate = null;
+                loadInmatesForZone(currentZone.id);
+            } catch (error) {
+                alert('Error al eliminar reo');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // SIMULAR CAMINATA
+        // ═══════════════════════════════════════════════════════════════════
+
+        async function simulateWalk() {
+            if (!currentInmate || !currentMarker) {
+                alert('Selecciona un reo y coloca un punto en el mapa');
+                return;
+            }
+
+            const startPos = currentMarker.getLatLng();
+            const steps = 10;
+            const delayMs = 500;
+
+            for (let i = 0; i < steps; i++) {
+                const newLat = startPos.lat + (Math.random() - 0.5) * 0.005;
+                const newLng = startPos.lng + (Math.random() - 0.5) * 0.005;
+
+                addMarker(newLat, newLng);
+                await new Promise(r => setTimeout(r, delayMs));
+
+                // Enviar posición
+                try {
+                    const res = await fetch(`${API_BASE}/gps/position`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            inmateId: currentInmate.id,
+                            lat: newLat,
+                            lng: newLng,
+                            accuracy: 5
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.alert) stats.alerts++;
+                    positionCount++;
+                } catch (error) {
+                    console.error('Error en caminata:', error);
+                }
+            }
+
+            document.getElementById('positionCount').textContent = positionCount;
+            document.getElementById('alertCount').textContent = stats.alerts;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // UTILIDADES
+        // ═══════════════════════════════════════════════════════════════════
+
+        function pointInPolygon(point, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i][0], yi = polygon[i][1];
+                const xj = polygon[j][0], yj = polygon[j][1];
+                const intersect = ((yi > point[1]) !== (yj > point[1])) &&
+                    (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function updateAPIStatus() {
+            fetch(`${API_BASE}/health`)
+                .then(() => {
+                    document.getElementById('apiStatus').className = 'status-indicator online';
+                    document.getElementById('apiStatusText').textContent = 'Conectado';
+                })
+                .catch(() => {
+                    document.getElementById('apiStatus').className = 'status-indicator offline';
+                    document.getElementById('apiStatusText').textContent = 'Desconectado';
+                });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // INICIAR
+        // ═══════════════════════════════════════════════════════════════════
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadZones();
+            connectWebSocket();
+            setInterval(updateAPIStatus, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -29,4 +29,13 @@ class ValidationError extends AppError {
   }
 }
 
-module.exports = { AppError, NotFoundError, ValidationError };
+/**
+ * Error 401 — No autorizado.
+ */
+class UnauthorizedError extends AppError {
+  constructor(message = 'No autorizado') {
+    super(message, 401);
+  }
+}
+
+module.exports = { AppError, NotFoundError, ValidationError, UnauthorizedError };

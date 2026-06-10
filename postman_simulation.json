@@ -1,0 +1,291 @@
+{
+  "info": {
+    "name": "Simulación Geofencing - Áreas Restringidas",
+    "description": "Colección para simular sistema de alertas cuando un reo sale de zona restringida",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1️⃣ CREAR ZONA RESTRINGIDA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"Feature\",\n  \"properties\": {\n    \"name\": \"Penitenciaria Central\",\n    \"description\": \"Zona de máxima seguridad - área restringida\"\n  },\n  \"geometry\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [-56.15, -34.90],\n        [-56.14, -34.90],\n        [-56.14, -34.91],\n        [-56.15, -34.91],\n        [-56.15, -34.90]\n      ]\n    ]\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/zones",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "zones"]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  var jsonData = pm.response.json();",
+              "  pm.environment.set('zoneId', jsonData.id);",
+              "  console.log('✅ Zona creada con ID: ' + jsonData.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2️⃣ CREAR REO (asignado a zona)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Juan Pérez García\",\n  \"identification\": \"12345678-A\",\n  \"zoneId\": \"{{zoneId}}\",\n  \"deviceId\": \"device-gps-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/inmates",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "inmates"]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  var jsonData = pm.response.json();",
+              "  pm.environment.set('inmateId', jsonData.id);",
+              "  console.log('✅ Reo creado con ID: ' + jsonData.id);",
+              "  console.log('📍 Nombre: ' + jsonData.name);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3️⃣ ENVIAR POSICIÓN DENTRO DE LA ZONA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"inmateId\": \"{{inmateId}}\",\n  \"lat\": -34.905,\n  \"lng\": -56.145,\n  \"accuracy\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/gps/position",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "gps", "position"]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "console.log('✅ Posición registrada');",
+              "console.log('   ¿Dentro de zona?: ' + jsonData.inside);",
+              "console.log('   Alerta generada?: ' + (jsonData.alert ? 'SÍ' : 'NO'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4️⃣ ENVIAR POSICIÓN FUERA DE LA ZONA (ALERTA ⚠️)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"inmateId\": \"{{inmateId}}\",\n  \"lat\": -34.88,\n  \"lng\": -56.12,\n  \"accuracy\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/gps/position",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "gps", "position"]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "console.log('⚠️  ALERTA GENERADA');",
+              "console.log('   ¿Dentro de zona?: ' + jsonData.inside);",
+              "if (jsonData.alert) {",
+              "  pm.environment.set('alertId', jsonData.alert.id);",
+              "  console.log('   ID Alerta: ' + jsonData.alert.id);",
+              "  console.log('   Status: ' + jsonData.alert.status);",
+              "  console.log('   Distancia fuera: ' + jsonData.alert.distanceMeters.toFixed(0) + ' metros');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5️⃣ VER TODAS LAS ALERTAS ACTIVAS",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alerts?status=activa",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "alerts"],
+          "query": [
+            {
+              "key": "status",
+              "value": "activa"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6️⃣ REGRESAR REO A LA ZONA (RESUELVE ALERTA)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"inmateId\": \"{{inmateId}}\",\n  \"lat\": -34.905,\n  \"lng\": -56.145,\n  \"accuracy\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/gps/position",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "gps", "position"]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "console.log('✅ Reo regresó a la zona');",
+              "console.log('   ¿Dentro de zona?: ' + jsonData.inside);",
+              "console.log('   Alerta resuelta automáticamente');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7️⃣ VER ÚLTIMAS POSICIONES DE TODOS",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/gps/latest",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "gps", "latest"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8️⃣ VER HISTORIAL DE POSICIONES DE UN REO",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/gps/history/{{inmateId}}?limit=50",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "gps", "history", "{{inmateId}}"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "❌ LIMPIAR: Eliminar reo",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/inmates/{{inmateId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "inmates", "{{inmateId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "❌ LIMPIAR: Eliminar zona",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/zones/{{zoneId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "zones", "{{zoneId}}"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "zoneId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inmateId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "alertId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

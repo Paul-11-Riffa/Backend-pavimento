@@ -1,9 +1,12 @@
 const app = require('./app');
 const config = require('./config');
 const db = require('./config/database');
+const wsServer = require('./websocket/wsServer');
+const gpsService = require('./services/gps.service');
+const alertsService = require('./services/alerts.service');
 
 /**
- * Verificar conexión a la base de datos antes de arrancar el servidor.
+ * Verificar conexión a la base de datos y arrancar el servidor.
  */
 async function start() {
   try {
@@ -21,13 +24,21 @@ async function start() {
 
   const server = app.listen(config.port, () => {
     console.log(`
-  ╔══════════════════════════════════════════════╗
-  ║   🛣️  Pavimento Backend API                  ║
-  ║   Servidor corriendo en puerto ${String(config.port).padEnd(13)}║
-  ║   http://localhost:${String(config.port).padEnd(25)}║
-  ╚══════════════════════════════════════════════╝
+  ╔══════════════════════════════════════════════════╗
+  ║   🛡️  GeoGuard — Monitoreo de Áreas Restringidas ║
+  ║   Servidor corriendo en puerto ${String(config.port).padEnd(17)}║
+  ║   HTTP:  http://localhost:${String(config.port).padEnd(22)}║
+  ║   WS:    ws://localhost:${String(config.port).padEnd(24)}║
+  ╚══════════════════════════════════════════════════╝
     `);
   });
+
+  // ─── Inicializar WebSocket ──────────────────────────────────────────────
+  wsServer.init(server);
+
+  // Inyectar broadcast en los servicios que lo necesitan
+  gpsService.setWsBroadcast(wsServer.broadcast);
+  alertsService.setWsBroadcast(wsServer.broadcast);
 
   // ─── Graceful Shutdown ──────────────────────────────────────────────────
 

@@ -2,9 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./config');
 const db = require('./config/database');
-const reportsRoutes = require('./routes/reports.routes');
 const requestLogger = require('./middlewares/requestLogger');
 const { AppError } = require('./utils/errors');
+
+// ─── Rutas del Sistema de Monitoreo ─────────────────────────────────────────
+const authRoutes = require('./routes/auth.routes');
+const zonesRoutes = require('./routes/zones.routes');
+const inmatesRoutes = require('./routes/inmates.routes');
+const gpsRoutes = require('./routes/gps.routes');
+const alertsRoutes = require('./routes/alerts.routes');
+const verifyToken = require('./middlewares/verifyToken');
 
 const app = express();
 
@@ -16,7 +23,7 @@ app.use(requestLogger);
 // Habilitar CORS para permitir peticiones del frontend
 app.use(cors({ origin: config.corsOrigin }));
 
-// Parsear JSON con un límite de 1 MB (suficiente para geometrías grandes)
+// Parsear JSON con un límite de 1 MB
 app.use(express.json({ limit: '1mb' }));
 
 // ─── Ruta de salud (con verificación de base de datos) ──────────────────────
@@ -37,7 +44,7 @@ app.get('/api/health', async (req, res) => {
 
   res.status(healthy ? 200 : 503).json({
     status: healthy ? 'ok' : 'degraded',
-    service: 'pavimento-backend',
+    service: 'geoguard-monitoreo',
     timestamp: new Date().toISOString(),
     database: {
       status: dbStatus,
@@ -48,7 +55,15 @@ app.get('/api/health', async (req, res) => {
 
 // ─── Rutas de la API ────────────────────────────────────────────────────────
 
-app.use('/api/reports', reportsRoutes);
+app.use('/api/auth', authRoutes); // Público
+
+// Rutas protegidas (Requieren Token de Policía)
+app.use('/api/zones', verifyToken, zonesRoutes);
+app.use('/api/inmates', verifyToken, inmatesRoutes);
+app.use('/api/alerts', verifyToken, alertsRoutes);
+
+// GPS protegido o con validaciones específicas en su propio router
+app.use('/api/gps', gpsRoutes);
 
 // ─── Manejo de rutas no encontradas ─────────────────────────────────────────
 
