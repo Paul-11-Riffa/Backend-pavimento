@@ -13,7 +13,8 @@ const config = require('./index');
  */
 const isRemote =
   config.databaseUrl.includes('supabase') ||
-  config.databaseUrl.includes('rds.amazonaws');
+  config.databaseUrl.includes('rds.amazonaws') ||
+  config.databaseUrl.includes('neon.tech');
 
 const db = knex({
   client: 'pg',

@@ -2,7 +2,8 @@ const config = require('./src/config');
 
 const isRemote =
   config.databaseUrl.includes('supabase') ||
-  config.databaseUrl.includes('rds.amazonaws');
+  config.databaseUrl.includes('rds.amazonaws') ||
+  config.databaseUrl.includes('neon.tech');
 
 module.exports = {
   client: 'pg',
